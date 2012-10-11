@@ -80,7 +80,7 @@ public class CheckLogTestNGListener implements ITestListener,ISuiteListener {
 			check = checks.get(0);
 		}
 		RemoteLogHandle watcher = create(checks);
-		if (watcher!=null && watcher.isEnabled()) {
+		if (watcher!=null && watcher.isEnabled() && isEnabledGlobal()) {
 			log.fine("Enabling checker "+watcher.toString()+ " for class "+klass.getCanonicalName());
 			classWatcher = watcher;
 			watcher.watch();
@@ -269,6 +269,9 @@ public class CheckLogTestNGListener implements ITestListener,ISuiteListener {
 			e.printStackTrace();
 		}
 		return inst;
+	}
+	private boolean isEnabledGlobal() {
+		return System.getProperty("com.redhat.qe.tools.checklog.disabled","false").toLowerCase().equals("true");
 	}
 	/**
 	 * this handles watcher together with a flag whether it's enabled or not
