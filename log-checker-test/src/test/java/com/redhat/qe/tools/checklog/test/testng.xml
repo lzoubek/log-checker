@@ -1,0 +1,22 @@
+<suite name="Log checker Test">
+	<test name="LogFile referenced test">
+		<classes>
+			<class name="com.redhat.qe.tools.checklog.test.LogFileReferenceTest" />
+		</classes>
+	</test>
+	<test name="Rotated LogFile test">
+		<classes>
+			<class name="com.redhat.qe.tools.checklog.test.RotatingLogFileTest" />
+		</classes>
+	</test>
+	<test name="Remote LogFile test">
+		<classes>
+			<class name="com.redhat.qe.tools.checklog.test.RemoteLogFileTest" />
+		</classes>
+	</test>
+	<test name="Filtering and ignoring expressions test">
+		<classes>
+			<class name="com.redhat.qe.tools.checklog.test.FilterAndIgnoreTest" />
+		</classes>
+	</test>
+</suite>
