@@ -15,7 +15,7 @@ log-checker helps you to implement additional validation of your .log files on y
 
 ## How does it work?
  * before test method runs, a testng listener checks for annotations and for each @LogFile remembers number of lines
- * after test method finished listener checks each @Logfile again to see the difference. If something was appended to logfile
+ * after test method finished, listener checks each @Logfile again to see the difference. If something was appended to logfile
 and there is a match on failOn expression, method is marked as FAILED.
 
 ## Example
@@ -49,4 +49,4 @@ public class MyTest {
 	}
 }
 ```
-For more examples check log-checker-test project. Note that if you run tests on this project, test methods that end fail() are supposed to fail
+For more examples check `log-checker-test` project. Note that if you run tests on this project, test methods that end `fail()` are supposed to fail
