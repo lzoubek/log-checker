@@ -109,7 +109,7 @@ public class CheckLogTestNGListener implements ITestListener,ISuiteListener {
 					}
 					if (message.length()>0) {
 						result.setStatus(ITestResult.FAILURE);
-						result.setThrowable(new RuntimeException("Following error lines were found in\n"+message.toString(),result.getThrowable()));
+						result.setThrowable(new ErrorLineFoundException("Following error lines were found in\n"+message.toString(),result.getThrowable()));
 					}
 				}
 			}
