@@ -41,21 +41,29 @@ project(":log-checker") {
 }
 project(":log-checker-test") {
 	dependencies {
-		testCompile project(":log-checker")
+		testCompile project(":log-checker"),
+    "com.google.inject:guice:3.0"
 	}
-	test {
-		useTestNG()
-		systemProperties = System.properties
-		options.suites("src/test/java/com/redhat/qe/tools/checklog/test/testng.xml")
-		scanForTestClasses = false;
-		workingDir = "build"
-		ignoreFailures = true;
-		testLogging {
-			showStandardStreams = true
-			debug
-		}
-		options {
-			listeners << "com.redhat.qe.tools.checklog.CheckLogTestNGListener"
-		}
-	}
+  task test(dependsOn: "testClasses",overwrite:true) << {
+    def xmlSuite = "src/test/java/com/redhat/qe/tools/checklog/test/testng.xml"
+    ant.taskdef( resource: 'testngtasks', classpath: project(":log-checker").sourceSets.main.compileClasspath.asPath )
+    ant.testng(
+      classpath: sourceSets.test.runtimeClasspath.asPath,
+      listeners: "com.redhat.qe.tools.checklog.CheckLogTestNGListener",
+      outputdir: "$buildDir/reports/tests",
+      workingDir: "$buildDir"
+    ) {
+        xmlfileset(file: "${xmlSuite}")
+        // we pass all system properties to testNG except line.sepatator
+        // there's an issue that stacktraces are not output on new lines (only god knows why)
+        for (def prop in System.properties) {
+          if (prop.key.equals("line.separator")) {
+            continue
+          }
+          else {
+            sysproperty(key:prop.key,value:prop.value)
+            }
+        }
+    }
+  }
 }
