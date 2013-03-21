@@ -1,5 +1,7 @@
 package com.redhat.qe.tools.checklog;
 
+import java.io.IOException;
+
 import com.redhat.qe.tools.SSHCommandResult;
 
 /**
@@ -23,4 +25,10 @@ public interface ICommandRunner {
 	 * connects (useful for remote runner implementations)
 	 */
 	void connect();
+	/**
+	 * gets a file from source and puts it to destination
+	 * @param source file name
+	 * @param destination file name - must be ABSOLUTE
+	 */
+	void getFile(String source, String destination) throws IOException;
 }

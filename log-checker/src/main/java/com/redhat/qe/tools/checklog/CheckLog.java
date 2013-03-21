@@ -5,6 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.testng.TestNG;
+
 /**
  * This annotation can be on class or method and is processed by {@link CheckLogTestNGListener} listener. 
  * Adding this annotation to class (or even superclass) or method does following:
@@ -58,4 +60,12 @@ public @interface CheckLog {
 	 * @return
 	 */
 	boolean assertFailed() default true;
+	/**
+	 * when enabling this option, all defined {@link LogFile} with {@link LogFile#grabMe()}
+	 * will copied to <b>{@link TestNG#getOutputDirectory()}/logs</b> after whole suite is finished.
+	 * {@link CheckLog#enabled()} annotation is ignored for grabbing
+	 * @return
+	 */
+	boolean grabLogFiles() default false;
+	
 }

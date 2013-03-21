@@ -2,8 +2,11 @@ package com.redhat.qe.tools.checklog;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.channels.FileChannel;
 import java.util.logging.Logger;
 
 import com.redhat.qe.tools.SSHCommandResult;
@@ -104,7 +107,48 @@ public class LocalCommandRunner implements ICommandRunner {
 
 	@Override
 	public void connect() {
-		// TODO Auto-generated method stub
 		
 	}
+	@Override
+	public void getFile(String source, String destination) throws IOException {
+	    File s = new File(source);
+	    File d = new File(destination);
+	    if (!s.isAbsolute()) {
+		s = new File(this.workDir+File.separator+source);
+	    }
+	    if (!s.canRead() || !s.isFile()) {
+		throw new IOException("Source file does not exist");
+	    }
+	    if (!d.isAbsolute()) {
+		throw new IOException("Destination file is not absolute");
+	    }
+	    d.getParentFile().mkdirs();
+	    copyFile(s, d);
+	}
+	private static void copyFile(File sourceFile, File destFile)
+		throws IOException {
+	if (!destFile.exists()) {
+		destFile.createNewFile();
+	}
+	if (sourceFile.equals(destFile)) {
+	    log.fine("Source and Destination file ["+sourceFile.getAbsolutePath()+"] are same file, not copying");
+	    return;
+	}
+
+	FileChannel source = null;
+	FileChannel destination = null;
+
+	try {
+		source = new FileInputStream(sourceFile).getChannel();
+		destination = new FileOutputStream(destFile).getChannel();
+		destination.transferFrom(source, 0, source.size());
+	} finally {
+		if (source != null) {
+			source.close();
+		}
+		if (destination != null) {
+			destination.close();
+		}
+	}
+}
 }

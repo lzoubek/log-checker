@@ -1,8 +1,11 @@
 package com.redhat.qe.tools.checklog;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,6 +15,7 @@ import org.testng.ISuiteListener;
 import org.testng.ITestContext;
 import org.testng.ITestListener;
 import org.testng.ITestResult;
+import org.testng.Reporter;
 /**
  * TestNG listener that intercepts {@link LogFileReader} watcher on test method calls.
  * Watching and checking log file can be enabled either globally by setting <b>com.redhat.qe.tools.remote.log.check</b> property, 
@@ -27,6 +31,7 @@ public class CheckLogTestNGListener implements ITestListener,ISuiteListener {
 	
 	private static final Pattern envVarPattern = Pattern.compile("\\$\\{env\\:([^\\}]+)\\}");
 	private static final Pattern systemPropPattern = Pattern.compile("\\$\\{([^\\}]+)\\}");
+	private final Map<String,LogFileReader> grabLogs = new HashMap<String, LogFileReader>();
 	private RemoteLogHandle classWatcher = null;
 	@Override
 	public void onStart(ISuite arg0) {
@@ -34,7 +39,26 @@ public class CheckLogTestNGListener implements ITestListener,ISuiteListener {
 	}
 
 	@Override
-	public void onFinish(ISuite arg0) {	
+	public void onFinish(ISuite arg0) {
+	    if (!grabLogs.isEmpty()) {
+		log.info("Grabbing log files");
+		String outputDir = arg0.getOutputDirectory()+File.separator+"logs";
+		for (LogFileReader rfl : grabLogs.values()) {
+		    try {
+			log.info("Grabbing "+rfl.toString());
+			rfl.grabLogFile(outputDir+File.separator+rfl.getLogFileName().replace("/", "_"));
+			
+		    }
+		    catch (Exception ex) {
+			log.warning("Unable to grab "+rfl.toString()+" reason: "+ex.getMessage());
+			//ex.printStackTrace();
+		    }
+		    finally {
+			rfl.disconnect();
+		    }
+		}
+		grabLogs.clear();
+	    }
 	}
 
 	@Override
@@ -101,10 +125,13 @@ public class CheckLogTestNGListener implements ITestListener,ISuiteListener {
 					for (LogFileReader rla : watcher.getLogs()) {
 						log.fine("Examining "+rla.toString()+"...");
 						List<String> errorLines = rla.filteredLines();
-						if (!errorLines.isEmpty()) {
-							log.warning("Founds lines matching ["+rla.getFilter()+"] in "+rla.toString()+" , seting test result as FAILED");
-							message.append(rla.toString()+":\n");
-							message.append(linesToStr(errorLines)+"\n");
+						if (!errorLines.isEmpty()) {						    	
+						    	log.warning("Founds lines matching ["+rla.getFilter()+"] in "+rla.toString()+" , seting test result as FAILED");						    	
+						    	message.append(rla.toString()+":\n");
+							message.append(linesToStr(errorLines,"\n")+"\n");
+							Reporter.setCurrentTestResult(result);
+							Reporter.log("Founds lines matching ["+rla.getFilter()+"] in "+rla.toString()+" , seting test result as FAILED<br>");
+							Reporter.log(linesToStr(errorLines,"<br>"));
 						}
 					}
 					if (message.length()>0) {
@@ -217,7 +244,8 @@ public class CheckLogTestNGListener implements ITestListener,ISuiteListener {
 		String logFile = (String)getCorrectValue(defValues.logFile(), referenced.logFile(), rl.logFile());
 		String failExpr = (String)getCorrectValue(defValues.failOn(), referenced.failOn(), rl.failOn());
 		String ignoreExpr = (String)getCorrectValue(defValues.ignore(), referenced.ignore(), rl.ignore());
-	return CheckLogTestNGListener.createLogReader(user, host, pass, keyfile, logFile,failExpr, ignoreExpr);
+		boolean grabMe = (Boolean)getCorrectValue(defValues.grabMe(), referenced.grabMe(), rl.grabMe());
+	return CheckLogTestNGListener.createLogReader(user, host, pass, keyfile, logFile,failExpr, ignoreExpr,grabMe);
 
 	}
 	/**
@@ -228,18 +256,21 @@ public class CheckLogTestNGListener implements ITestListener,ISuiteListener {
 			return null;
 		}
 		// first item is always the main
-		CheckLog check = checks.get(0);
-		if (!check.enabled()) {
-			// user requires to turn off checker
-			return new RemoteLogHandle(null,false,false);
-		}		
+		CheckLog check = checks.get(0);				
 		RemoteLogHandle inst = new RemoteLogHandle("class",true,check.assertFailed());
 		for (LogFile rl : check.logs()) {
 			LogFileReader rla = createFromLogFileAnnotation(rl,checks);
 			if (rla!=null) {
 				inst.getLogs().add(rla);
+				if (rla.isGrabMe()) {
+				    grabLogs.put(rla.toString(), rla);
+				}
 			}
-		}		
+		}
+		if (!check.enabled()) {
+			// user requires to turn off checker
+			return new RemoteLogHandle(null,false,false);
+		}
 		return inst;
 	}
 	private void disconnectWatcher(RemoteLogHandle watcher) {
@@ -249,17 +280,17 @@ public class CheckLogTestNGListener implements ITestListener,ISuiteListener {
 		}
 		watcher = null;
 	}
-	private String linesToStr(List<String> lines) {
+	private String linesToStr(List<String> lines, String newLine) {
 		StringBuilder sb = new StringBuilder();
 		for (String line : lines) {
-			sb.append(line+"\n");
+			sb.append(line+newLine);
 		}
 		return sb.toString();
 	}
-	private static LogFileReader createLogReader(String user,String host, String pass, String key, String logFile, String filter, String ignore) {
+	private static LogFileReader createLogReader(String user,String host, String pass, String key, String logFile, String filter, String ignore, boolean grabMe) {
 		LogFileReader inst = null;
 		try {
-			inst = new LogFileReader(substValues(user), substValues(host), substValues(pass), substValues(key), substValues(logFile));
+			inst = new LogFileReader(substValues(user), substValues(host), substValues(pass), substValues(key), substValues(logFile),grabMe);
 			inst.setFilter(substValues(filter));
 			inst.setIgnore(substValues(ignore));
 		} catch (IOException e) {

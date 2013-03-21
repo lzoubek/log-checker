@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * this class provides access to any log file using either SSH or local fs
+ * this class provides access to any log file using either SSH or local filesystem
  * @author lzoubek@redhat.com
  *
  */
@@ -21,14 +21,16 @@ public class LogFileReader {
 	private final String host;
 	private String filter = null;
 	private String ignore = null;
+	private boolean grabMe = false;
 	/**
 	 * creates new instance of RemoteLogAccess
 	 * @throws IOException 
 	 */
-	public LogFileReader(String user, String host, String pass, String key, String logFile) throws IOException {
+	public LogFileReader(String user, String host, String pass, String key, String logFile, boolean grabMe) throws IOException {
 		this.logFile = logFile;
 		this.host = host;
 		this.user = user;
+		this.grabMe = grabMe;
 		ICommandRunner runner;
 		if (user==null || host==null || "".equals(user) || "".equals(host)) {
 			runner = new LocalCommandRunner();
@@ -39,6 +41,9 @@ public class LogFileReader {
 		this.client = runner;
 		log.fine("Created "+toString());
 			
+	}
+	public boolean isGrabMe() {
+	    return grabMe;
 	}
 
 	public void setIgnore(String ignore) {
@@ -82,11 +87,21 @@ public class LogFileReader {
 	public void watch() {
 		this.startLine = getLineNumbers(getLogfile());
 	}
+	/**
+	 * disconnects reader from remote/local location
+	 */
 	public void disconnect() {
 		client.disconnect();
 	}
 	/**
-	 * returns content of <b>agent.log</b> since {@link LogFileReader#watch()} 
+	 * grabs {@link LogFileReader#getLogfile()}} and puts it to given destination
+	 * @param destination file name
+	 */
+	public void grabLogFile(String destination) throws IOException {
+	    client.getFile(getLogfile(), destination);
+	}
+	/**
+	 * returns content of {@link LogFileReader#getLogfile()}} since {@link LogFileReader#watch()} 
 	 * or {@link LogFileReader#getContent()} was called. Note that calling this also calls {@link LogFileReader#watch()}
 	 * so you get only appended content
 	 * @return
@@ -95,7 +110,7 @@ public class LogFileReader {
 		return getContent(null,null);
 	}
 	/**
-	 * returns content of <b>agent.log</b> since {@link LogFileReader#watch()} 
+	 * returns content of {@link LogFileReader#getLogfile()}} since {@link LogFileReader#watch()} 
 	 * or {@link LogFileReader#getContent()} was called. Note that calling this also calls {@link LogFileReader#watch()}
 	 * so you get only appended content
 	 * @param grepFilter expression to filter results, if null, grep is not used at all
@@ -163,11 +178,18 @@ public class LogFileReader {
 	public List<String> filteredLines() {
 		return lines(getFilter(),getIgnore());
 	}
+	/**
+	 * gets log file name which should be unique among all log file readers (if remote, also contains user@host: prefix)
+	 * @return
+	 */
+	public String getLogFileName() {
+	    if (client.getClass().equals(LocalCommandRunner.class)) {
+		return new File(getLogfile()).getAbsolutePath();
+	    }
+		return user+"@"+host+":"+getLogfile();
+	}
 	@Override
 	public String toString() {
-		if (client.getClass().equals(LocalCommandRunner.class)) {
-			return "["+new File(getLogfile()).getAbsolutePath()+"]";
-		}
-		return "["+user+"@"+host+":"+getLogfile()+"]";
+		return "["+getLogFileName()+"]";
 	}
 }

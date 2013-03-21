@@ -2,12 +2,14 @@ package com.redhat.qe.tools.checklog;
 
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Logger;
 
 import com.redhat.qe.tools.SSHCommandResult;
 import com.redhat.qe.tools.SSHCommandRunner;
 import com.trilead.ssh2.Connection;
+import com.trilead.ssh2.SCPClient;
 /**
  * This class is a remote command runner that uses SSH as a transport protocol for executing remote commands 
  * @author lzoubek@redhat.com
@@ -15,6 +17,7 @@ import com.trilead.ssh2.Connection;
  */
 public class RemoteCommandRunner implements ICommandRunner {
 	protected SSHCommandRunner sshCommandRunner = null;
+	protected SCPClient scpClient = null;
 	protected Connection connection = null;
 	private final String user;
 	private final String host;
@@ -53,6 +56,7 @@ public class RemoteCommandRunner implements ICommandRunner {
 				connection.authenticateWithPublicKey(user, new File(key), pass);
 			}
 			sshCommandRunner = new SSHCommandRunner(connection, null);
+			scpClient = new SCPClient(connection);
 		} catch (IOException e) {
 			connection = null;
 			throw new RuntimeException("Cannot connect to "+user+"@"+host+" via SSH",e);
@@ -82,6 +86,21 @@ public class RemoteCommandRunner implements ICommandRunner {
 			connection.close();
 			connection = null;
 		}
+	}
+	@Override
+	public void getFile(String source, String destination) throws IOException {
+	    File d = new File(destination);
+	    if (!d.isAbsolute()) {
+		throw new IOException("Destination file is not absolute");
+	    }
+	    d.getParentFile().mkdirs();	    
+	    if (!isConnected()) {
+		connect();
+	    }
+	    FileOutputStream fos = new FileOutputStream(d);
+	    scpClient.get(source, fos);
+	    fos.flush();
+	    fos.close();	    
 	}
 	
 }

@@ -61,4 +61,9 @@ public @interface LogFile {
 	 * an expression passed to <b>grep</b> tool to ignore possibly BAD lines (matching {@link LogFile#failOn()}) in log file
 	 */
 	String ignore() default "";
+	/**
+	 * enable this LogFile to be grabbed after test suite is done
+	 * @return
+	 */
+	boolean grabMe() default true;
 }

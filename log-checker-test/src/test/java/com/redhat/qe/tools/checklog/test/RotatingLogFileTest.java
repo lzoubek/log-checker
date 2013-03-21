@@ -19,7 +19,7 @@ public class RotatingLogFileTest extends BaseTest {
 	
 	@Test
 	@CheckLog(logs={
-			@LogFile(logFile="/tmp/test5.log")
+			@LogFile(logFile="/tmp/test5.log",grabMe=false)
 	})
 	public void rotatingLogFileFail() {
 		local.connect();

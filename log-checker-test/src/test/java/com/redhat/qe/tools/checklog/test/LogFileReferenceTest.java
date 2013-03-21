@@ -10,6 +10,13 @@ import com.redhat.qe.tools.checklog.LogFile;
 })
 public class LogFileReferenceTest extends BaseTest {
 
+    	@Test
+    	@CheckLog(logs={
+		@LogFile(refId="4")
+    	})
+    	public void referencedTobeGrabbed() {
+    	    
+    	}
 	@Test
 	public void referencedByClassFail() {
 		local.connect();
